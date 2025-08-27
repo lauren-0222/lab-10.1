@@ -2,33 +2,33 @@ import { useEffect, useState } from "react";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 
 export default function AdvancedCounter() {
-  // useLocalStorage hook replaces manual localStorage logic
   const [count, setCount] = useLocalStorage<number>("advanced-count", 0);
   const [step, setStep] = useState<number>(1);
   const [history, setHistory] = useState<number[]>([0]);
+  const [saved, setSaved] = useState<boolean>(false);
 
-  // Record history when count changes
+
   useEffect(() => {
-    setHistory((prev) => {
-      if (prev[prev.length - 1] === count) return prev;
-      return [...prev, count];
-    });
+    setHistory((prev) => (prev[prev.length - 1] === count ? prev : [...prev, count]));
   }, [count]);
 
-  // Keyboard shortcuts
+
   useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "ArrowUp") {
-        setCount((c) => c + normalizeStep(step));
-      } else if (e.key === "ArrowDown") {
-        setCount((c) => c - normalizeStep(step));
-      }
-    }
+    setSaved(true);
+    const timer = setTimeout(() => setSaved(false), 1000);
+    return () => clearTimeout(timer);
+  }, [count]);
+
+  
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowUp") setCount((c) => c + normalizeStep(step));
+      if (e.key === "ArrowDown") setCount((c) => c - normalizeStep(step));
+    };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [step, setCount]);
 
-  // Helpers
   function normalizeStep(value: number) {
     const n = Number(value);
     return Number.isFinite(n) && n !== 0 ? n : 1;
@@ -48,34 +48,35 @@ export default function AdvancedCounter() {
   }
 
   return (
-    <div className="card">
-      <div className="row">
-        <button onClick={decrement} aria-label="decrement">−</button>
-        <div className="count" aria-live="polite" aria-atomic="true">
-          {count}
-        </div>
-        <button onClick={increment} aria-label="increment">+</button>
+    <div className="counter">
+
+      <p><strong>Current Count:</strong> {count}</p>
+
+      <div className="buttons">
+        <button onClick={decrement}>Decrement</button>
+        <button onClick={increment}>Increment</button>
+        <button onClick={reset}>Reset</button>
       </div>
 
-      <div className="row stepRow">
-        <label htmlFor="step" className="stepLabel">Step:</label>
+      <div className="stepRow">
+        <label htmlFor="step"><strong>Step Value:</strong></label>
         <input
           id="step"
-          className="stepInput"
           type="number"
           value={step}
           onChange={(e) => setStep(Number(e.target.value))}
         />
-        <button onClick={reset} className="resetBtn">Reset</button>
       </div>
 
-      <p className="status">
-        Arrow keys work here: <strong>ArrowUp</strong> = increment, <strong>ArrowDown</strong> = decrement.
-      </p>
+      {saved && <p className="savedMsg">Changes saved.</p>}
 
       <div className="history">
-        <strong>Previous counts:</strong>{" "}
-        {history.join(", ")}
+        <strong>Count History:</strong>
+        <ul>
+          {history.map((val, idx) => (
+            <li key={idx}>{val}</li>
+          ))}
+        </ul>
       </div>
     </div>
   );
